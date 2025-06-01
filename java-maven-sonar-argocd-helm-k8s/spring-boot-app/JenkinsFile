@@ -61,7 +61,7 @@ pipeline {
 
             git checkout main
 
-            # Pull latest changes first (rebases your local changes on top of them) - 123456789
+            # Pull latest changes first (rebases your local changes on top of them)
             git pull --rebase https://$GITHUB_TOKEN@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
 
             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
