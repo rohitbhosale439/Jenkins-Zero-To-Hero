@@ -9,13 +9,13 @@ pipeline {
     stage('Checkout') {
       steps {
         sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/rohitbhosale439/Jenkins-Zero-To-Hero'
+        // Uncomment below to checkout the Git repo
+        // git branch: 'main', url: 'https://github.com/rohitbhosale439/Jenkins-Zero-To-Hero'
       }
     }
     stage('Build and Test') {
-      steps {	
+      steps {
         sh 'ls -ltr'
-        // build the project and create a JAR file
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
@@ -32,11 +32,11 @@ pipeline {
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "rohitbhosale439/ultimate-cicd:${BUILD_NUMBER}"
-        // DOCKERFILE_LOCATION = "java-maven-sonar-argocd-helm-k8s/spring-boot-app/Dockerfile"
         REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
         script {
+            sh 'docker --version'  // Check if Docker is installed
             sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
             def dockerImage = docker.image("${DOCKER_IMAGE}")
             docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
@@ -55,21 +55,20 @@ pipeline {
     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
         sh '''
             set -e
-
             git config user.email "rohitbhosale439@gmail.com"
             git config user.name "ROHIT BHOSALE"
 
             git checkout main
-
-            # Pull latest changes first (rebases your local changes on top of them)
-            git pull --rebase https://$GITHUB_TOKEN@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
+            git pull https://$GITHUB_TOKEN@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
 
             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
 
             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git commit -m "Update deployment image to version ${BUILD_NUMBER}" || echo "No changes to commit"
-
-            git push https://$GITHUB_TOKEN@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
+            if ! git commit -m "Update deployment image to version ${BUILD_NUMBER}"; then
+                echo "No changes to commit"
+            else
+                git push https://$GITHUB_TOKEN@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
+            fi
         '''
     }
         }
