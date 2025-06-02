@@ -13,12 +13,14 @@ pipeline {
         // git branch: 'main', url: 'https://github.com/rohitbhosale439/Jenkins-Zero-To-Hero'
       }
     }
+    
     stage('Build and Test') {
       steps {
         sh 'ls -ltr'
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
+
     stage('Static Code Analysis') {
       environment {
         SONAR_URL = "http://54.174.96.93:9000"
@@ -29,6 +31,7 @@ pipeline {
         }
       }
     }
+
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "rohitbhosale439/ultimate-cicd:${BUILD_NUMBER}"
@@ -45,6 +48,13 @@ pipeline {
         }
       }
     }
+
+    stage('Approval') {
+      steps {
+        input message: 'Do you approve the deployment to production?', ok: 'Approve', timeout: 1, timeoutMessage: 'Approval timed out.'
+      }
+    }
+
     stage('Update Deployment File') {
         environment {
             GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
