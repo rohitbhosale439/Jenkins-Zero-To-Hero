@@ -49,6 +49,13 @@ pipeline {
       }
     }
 
+    // Approval Stage
+    stage('Approval') {
+      steps {
+        input message: 'Do you approve the deployment to production?', ok: 'Approve', timeout: 15, timeoutMessage: 'Approval timed out.'
+      }
+    }
+
     stage('Update Deployment File') {
         environment {
             GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
