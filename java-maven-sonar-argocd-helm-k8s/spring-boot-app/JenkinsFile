@@ -5,6 +5,7 @@ pipeline {
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
     }
   }
+
   stages {
     stage('Checkout') {
       steps {
@@ -49,22 +50,15 @@ pipeline {
       }
     }
 
-    // Approval Stage
-    stage('Approval') {
-      steps {
-        input message: 'Do you approve the deployment to production?', ok: 'Approve', timeout: 15, timeoutMessage: 'Approval timed out.'
-      }
-    }
-
     stage('Update Deployment File') {
-        environment {
-            GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
-            GIT_USER_NAME = "rohitbhosale439"
-        }
+      environment {
+        GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
+        GIT_USER_NAME = "rohitbhosale439"
+      }
 
-        steps {
-    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-        sh '''
+      steps {
+        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+          sh '''
             set -e
             git config user.email "rohitbhosale439@gmail.com"
             git config user.name "ROHIT BHOSALE"
@@ -76,13 +70,13 @@ pipeline {
 
             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
             if ! git commit -m "Update deployment image to version ${BUILD_NUMBER}"; then
-                echo "No changes to commit"
+              echo "No changes to commit"
             else
-                git push https://$GITHUB_TOKEN@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
+              git push https://$GITHUB_TOKEN@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
             fi
-        '''
-    }
+          '''
         }
+      }
     }
   }
 }
