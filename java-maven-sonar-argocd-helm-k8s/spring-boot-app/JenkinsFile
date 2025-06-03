@@ -9,15 +9,20 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
+        // Print a simple message indicating the checkout stage
         sh 'echo passed'
-        // Uncomment below to checkout the Git repo
+        
+        // Uncomment below to checkout the Git repository
         // git branch: 'main', url: 'https://github.com/rohitbhosale439/Jenkins-Zero-To-Hero'
       }
     }
     
     stage('Build and Test') {
       steps {
+        // List files in current directory for debugging
         sh 'ls -ltr'
+        
+        // Navigate to Maven project directory and build the project using Maven
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
@@ -27,6 +32,7 @@ pipeline {
         SONAR_URL = "http://54.174.96.93:9000"
       }
       steps {
+        // Run SonarQube analysis on the project with authentication token
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
           sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
         }
@@ -40,12 +46,17 @@ pipeline {
       }
       steps {
         script {
-            sh 'docker --version'  // Check if Docker is installed
-            sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-            def dockerImage = docker.image("${DOCKER_IMAGE}")
-            docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
-                dockerImage.push()
-            }
+          // Verify Docker is installed inside the container
+          sh 'docker --version'
+
+          // Build Docker image with current build number as tag
+          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
+
+          // Push the Docker image to Docker Hub (or configured registry) using saved credentials
+          def dockerImage = docker.image("${DOCKER_IMAGE}")
+          docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
+            dockerImage.push()
+          }
         }
       }
     }
@@ -57,21 +68,30 @@ pipeline {
       }
 
       steps {
+        // Update Kubernetes deployment YAML with the new Docker image tag and push changes to GitHub repo
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
           sh '''
             set -e
+
+            # Configure Git user info for commit
             git config user.email "rohitbhosale439@gmail.com"
             git config user.name "ROHIT BHOSALE"
 
+            # Checkout the main branch and pull latest changes
             git checkout main
             git pull https://$GITHUB_TOKEN@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
 
+            # Replace placeholder image tag with current build number in deployment YAML
             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
 
+            # Stage changed file for commit
             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+
+            # Commit changes if any, else echo no changes
             if ! git commit -m "Update deployment image to version ${BUILD_NUMBER}"; then
               echo "No changes to commit"
             else
+              # Push committed changes back to GitHub
               git push https://$GITHUB_TOKEN@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
             fi
           '''
