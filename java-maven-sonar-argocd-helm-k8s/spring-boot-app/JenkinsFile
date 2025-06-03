@@ -73,7 +73,7 @@ pipeline {
           sh '''
             set -e
 
-            # Configure Git user info for commit
+            # Configure Git user info for commit - 123456
             git config user.email "rohitbhosale439@gmail.com"
             git config user.name "ROHIT BHOSALE"
 
